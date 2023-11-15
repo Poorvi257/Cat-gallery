@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const authController = {
+  // Function to handle user registration
   async register(req, res) {
     try {
       const { email, password } = req.body;
@@ -38,6 +39,7 @@ const authController = {
     }
   },
 
+  // Function to handle user login
   async login(req, res) {
     try {
       const { email, password } = req.body;
@@ -45,13 +47,13 @@ const authController = {
       // Find the user
       const user = await User.findOne({ where: { email } });
       if (!user) {
-        return res.status(401).send("Authentication failed");
+        return res.status(401).send({ message: "Authentication failed" });
       }
 
       // Check the password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        return res.status(401).send("Authentication failed");
+        return res.status(401).send({ message: "Authentication failed" });
       }
 
       // Create and send the token
@@ -62,21 +64,22 @@ const authController = {
       res.status(200).send({ user, token });
     } catch (error) {
       console.error("Login Error:", error);
-      res.status(500).send(error.message);
+      res.status(500).send({ message: "Internal Server Error" });
     }
   },
 
+  // Function to retrieve user profile
   async getProfile(req, res) {
     try {
       // req.user is set by the authMiddleware
       const user = await User.findByPk(req.user.id);
       if (!user) {
-        return res.status(404).send("User not found");
+        return res.status(404).send({ message: "User not found" });
       }
       res.status(200).json(user);
     } catch (error) {
       console.error("Get Profile Error:", error);
-      res.status(500).send(error.message);
+      res.status(500).send({ message: "Internal Server Error" });
     }
   },
 };
