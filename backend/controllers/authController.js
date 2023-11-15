@@ -7,14 +7,22 @@ const authController = {
     try {
       const { email, password } = req.body;
 
+      // Validate email and password
+      if (!email || !password) {
+        return res.status(400).send("Email and password are required");
+      }
+
       // Check if user already exists
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
         return res.status(400).send("User already exists");
       }
 
+      // Hash password before saving
+      const hashedPassword = await bcrypt.hash(password, 10);
+
       // Create a new user
-      const newUser = await User.create({ email, password });
+      const newUser = await User.create({ email, password: hashedPassword });
 
       // Create and send the token
       const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
@@ -23,11 +31,8 @@ const authController = {
 
       res.status(201).send({ user: newUser, token });
     } catch (error) {
-      if (error.name === "SequelizeValidationError") {
-        return res.status(400).send(error.message);
-      }
       console.error("Registration Error:", error);
-      res.status(500).send(error.message);
+      res.status(500).send("Internal Server Error");
     }
   },
 
