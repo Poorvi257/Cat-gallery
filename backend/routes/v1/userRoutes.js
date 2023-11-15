@@ -1,16 +1,15 @@
-// userRoutes.js
 const express = require("express");
 const router = express.Router();
 const authController = require("../../controllers/authController");
 const authMiddleware = require("../../middleware/authMiddleware");
 
-// User registration
+// User registration route
 router.post("/register", authController.register);
 
-// User login
+// User login route
 router.post("/login", authController.login);
 
-// Get user profile, protected route
+// User profile route, with authentication middleware
 router.get("/profile", authMiddleware, authController.getProfile);
 
 // Exporting the router
