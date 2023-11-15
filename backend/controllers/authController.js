@@ -15,17 +15,25 @@ const authController = {
           .send({ message: "Email and password are required" });
       }
 
+      // Check if the user email is valid
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).send({ message: "Invalid email format" });
+      }
+
       // Check if user already exists
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
         return res.status(400).send({ message: "User already exists" });
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // Check if the password is too short (e.g., minimum length requirement)
+      if (password.length < 8) {
+        return res.status(400).send({ message: "Password is too short" });
+      }
 
       // Create a new user
-      const newUser = await User.create({ email, password: hashedPassword });
+      const newUser = await User.create({ email, password });
 
       // Create and send the token
       const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
