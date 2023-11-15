@@ -130,3 +130,4 @@ dist
 .pnp.*
 
 backend/.env
+backend/package-lock.json
