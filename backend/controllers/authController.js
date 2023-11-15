@@ -7,18 +7,20 @@ const authController = {
     try {
       const { email, password } = req.body;
 
-      // Validate email and password
+      // Validate email and password presence
       if (!email || !password) {
-        return res.status(400).send("Email and password are required");
+        return res
+          .status(400)
+          .send({ message: "Email and password are required" });
       }
 
       // Check if user already exists
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
-        return res.status(400).send("User already exists");
+        return res.status(400).send({ message: "User already exists" });
       }
 
-      // Hash password before saving
+      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Create a new user
@@ -32,7 +34,7 @@ const authController = {
       res.status(201).send({ user: newUser, token });
     } catch (error) {
       console.error("Registration Error:", error);
-      res.status(500).send("Internal Server Error");
+      res.status(500).send({ message: "Internal Server Error" });
     }
   },
 
