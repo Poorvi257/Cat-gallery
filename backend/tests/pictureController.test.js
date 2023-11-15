@@ -57,7 +57,7 @@ describe("Picture Endpoints", () => {
       .post("/picture/upload")
       .set("Authorization", `Bearer ${token}`);
     expect(res.statusCode).toEqual(400);
-    expect(res.body).toHaveProperty("msg", "No file uploaded");
+    expect(res.body).toHaveProperty("message", "No file uploaded");
   });
 
   // Test uploading without a title
@@ -68,7 +68,7 @@ describe("Picture Endpoints", () => {
       .set("Authorization", `Bearer ${token}`)
       .attach("picture", filePath);
     expect(res.statusCode).toEqual(400);
-    expect(res.body).toHaveProperty("msg", "Title is required");
+    expect(res.body).toHaveProperty("message", "Title is required");
   });
 
   it("should fetch a picture by ID", async () => {
@@ -98,7 +98,7 @@ describe("Picture Endpoints", () => {
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty("msg", "Picture deleted successfully");
+    expect(res.body).toHaveProperty("message", "Picture deleted successfully");
   });
 
   afterAll(async () => {
