@@ -1,0 +1,19 @@
+FROM node:latest
+
+# Set the working directory inside the container to /app
+WORKDIR /app
+
+# Copy the local directory contents to the container's work directory
+COPY . .
+
+# Assuming the project structure requires navigating into 'backend' directory
+WORKDIR /app/backend
+
+# Install dependencies
+RUN npm install
+
+# Expose the port your backend-end runs on
+EXPOSE 3000
+
+# Run tests and then start the application
+CMD npm start
