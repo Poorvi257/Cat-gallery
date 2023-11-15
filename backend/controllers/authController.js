@@ -1,118 +1,87 @@
-const path = require("path");
-const { Picture } = require("../models"); // Adjust the import path as per your project structure
-const multer = require("multer");
+const { User } = require("../models");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
-// Utility function to validate picture ID
-function isValidPictureId(id) {
-  const pictureId = parseInt(id);
-  return !isNaN(pictureId) && pictureId > 0;
-}
-
-const pictureController = {
-  // Upload a picture
-  // Endpoint: POST /upload
-  // Requires a file upload and title in the request.
-  // Access can be specified, defaults to 'private'.
-  async upload(req, res) {
+const authController = {
+  // Function to handle user registration
+  async register(req, res) {
     try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
+      const { email, password } = req.body;
+
+      // Validate email and password presence
+      if (!email || !password) {
+        return res
+          .status(400)
+          .send({ message: "Email and password are required" });
       }
-      const { title, access } = req.body;
-      if (!title) {
-        return res.status(400).json({ message: "Title is required" });
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(400).send({ message: "User already exists" });
       }
-      const imageUrl = req.file.path;
-      const newPicture = await Picture.create({
-        title,
-        imageUrl,
-        access: access || "private",
-        userId: req.user.id,
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create a new user
+      const newUser = await User.create({ email, password: hashedPassword });
+
+      // Create and send the token
+      const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
+        expiresIn: "1h",
       });
-      return res.status(201).json(newPicture);
+
+      res.status(201).send({ user: newUser, token });
     } catch (error) {
-      return res.status(500).json({ message: "Error saving picture", error });
+      console.error("Registration Error:", error);
+      res.status(500).send({ message: "Internal Server Error" });
     }
   },
 
-  // Fetch picture by ID
-  // Endpoint: GET /:id
-  // Requires the picture ID as a URL parameter.
-  async fetchPictureById(req, res) {
+  // Function to handle user login
+  async login(req, res) {
     try {
-      if (!isValidPictureId(req.params.id)) {
-        return res.status(400).json({ message: "Invalid picture ID" });
+      const { email, password } = req.body;
+
+      // Find the user
+      const user = await User.findOne({ where: { email } });
+      if (!user) {
+        return res.status(401).send({ message: "Authentication failed" });
       }
-      const picture = await Picture.findOne({
-        where: { id: parseInt(req.params.id), userId: req.user.id },
+
+      // Check the password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).send({ message: "Authentication failed" });
+      }
+
+      // Create and send the token
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+        expiresIn: "1h",
       });
-      if (!picture) {
-        return res.status(404).json({ message: "Picture not found" });
-      }
-      return res.status(200).json(picture);
+
+      res.status(200).send({ user, token });
     } catch (error) {
-      return res.status(500).json({ message: "Error retrieving picture", error });
+      console.error("Login Error:", error);
+      res.status(500).send({ message: "Internal Server Error" });
     }
   },
 
-  // List all pictures for a user
-  // Endpoint: GET /
-  // Lists all pictures uploaded by the authenticated user.
-  async listAllPictures(req, res) {
+  // Function to retrieve user profile
+  async getProfile(req, res) {
     try {
-      const pictures = await Picture.findAll({
-        where: { userId: req.user.id },
-      });
-      return res.status(200).json(pictures);
+      // req.user is set by the authMiddleware
+      const user = await User.findByPk(req.user.id);
+      if (!user) {
+        return res.status(404).send({ message: "User not found" });
+      }
+      res.status(200).json(user);
     } catch (error) {
-      return res.status(500).json({ message: "Error listing pictures", error });
-    }
-  },
-
-  // Update a picture
-  // Endpoint: PUT /:id
-  // Requires the picture ID in the URL and title or access in the request body.
-  async updatePicture(req, res) {
-    try {
-      if (!isValidPictureId(req.params.id)) {
-        return res.status(400).json({ message: "Invalid picture ID" });
-      }
-      const { title, access } = req.body;
-      const picture = await Picture.findOne({
-        where: { id: parseInt(req.params.id), userId: req.user.id },
-      });
-      if (!picture) {
-        return res.status(404).json({ message: "Picture not found" });
-      }
-      if (title) picture.title = title;
-      if (access) picture.access = access;
-      await picture.save();
-      return res.status(200).json(picture);
-    } catch (error) {
-      return res.status(500).json({ message: "Error updating picture", error });
-    }
-  },
-
-  // Delete a picture
-  // Endpoint: DELETE /:id
-  // Requires the picture ID in the URL parameter.
-  async deletePicture(req, res) {
-    try {
-      if (!isValidPictureId(req.params.id)) {
-        return res.status(400).json({ message: "Invalid picture ID" });
-      }
-      const picture = await Picture.findOne({
-        where: { id: parseInt(req.params.id), userId: req.user.id },
-      });
-      if (!picture) {
-        return res.status(404).json({ message: "Picture not found" });
-      }
-      await picture.destroy();
-      return res.status(200).json({ message: "Picture deleted successfully" });
-    } catch (error) {
-      return res.status(500).json({ message: "Error deleting picture", error });
+      console.error("Get Profile Error:", error);
+      res.status(500).send({ message: "Internal Server Error" });
     }
   },
 };
 
-module.exports = pictureController;
+module.exports = authController;
